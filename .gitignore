@@ -1,0 +1,22 @@
+# Ignore the virtual environment directory
+venv/
+
+# Ignore the __pycache__ directories (Python bytecode cache)
+__pycache__/
+
+# Ignore the .env file (environment variables)
+.env
+
+# Ignore the credentials.json file (sensitive API credentials)
+credentials.json
+
+# Ignore IDE-specific files (if applicable)
+.vscode/
+.idea/
+
+# Ignore other temporary or system files
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
