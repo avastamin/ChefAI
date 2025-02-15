@@ -127,6 +127,33 @@ for url in article_urls:
                         time = time_td.text.strip()
                     break
         
+        # Extract images
+        images = [img['src'] for img in soup.find_all('img', src=True)]
+        image1 = images[0] if len(images) > 0 else None
+        image2 = images[1] if len(images) > 1 else None
+        image3 = images[2] if len(images) > 2 else None
+
+        # Extract nutrition info if available (example for a simple 'Nutrition' heading)
+        nutrition = ""
+        nutrition_section = soup.find('div', class_='nutrition')
+        if nutrition_section:
+            nutrition = nutrition_section.get_text().strip()
+
+        # Extract steps if available (example)
+        steps = ""
+        steps_section = soup.find('div', class_='steps')
+        if steps_section:
+            steps = "\n".join([step.get_text().strip() for step in steps_section.find_all('p')])
+
+        # Combine the extracted content into {html_rest}
+        html_rest = f"""
+        <!-- NUTRITION SECTION -->
+        {nutrition}
+
+        <!-- STEPS SECTION -->
+        {steps}
+        """
+
         print(f"\nExtracted data:")
         print(f"Title: {title} \n")
         print(f"Ingredients: \n{ingredients}\n")
@@ -165,11 +192,19 @@ for url in article_urls:
     <!-- INTRO SECTION -->
     {intro}
 
+
+    <!-- IMAGE 1 -->
+    <img src="{image1}" alt="Recipe Image 1">
+
+
     <!-- WHY YOU'LL LOVE THIS SECTION -->
     {html_why_love}
 
     <!-- MAIN INGREDIENT SECTION -->
     {html_main_ingredient}
+
+    <!-- IMAGE 2 -->
+    <img src="{image2}" alt="Recipe Image 2">
 
     <!-- SUBSTITUTION SECTION -->
     {html_substitution}
@@ -180,11 +215,17 @@ for url in article_urls:
     <!-- SERVING SECTION -->
     {html_serving}
 
+    <!-- IMAGE 3 -->
+    <img src="{image3}" alt="Recipe Image 3">
+
     <!-- STORAGE SECTION -->
     {html_storage}
 
     <!-- FAQ SECTION -->
     {html_faq}
+    
+    <!-- The Rest of the Recipe -->
+    {html_rest}
     """
 
     print(new_content)
