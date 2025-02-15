@@ -28,17 +28,17 @@ Automate the process of updating recipe content on WordPress websites by leverag
 ## Installation
 
 1. Clone the repository
-   git clone https://github.com/your-username/recipe-content-updater.git
-   cd recipe-content-updater
+   git clone https://github.com/avastamin/ChefAI
+   cd ChefAI
 
 2. Install dependencies
-   pip install -r requirements.txt
+   `pip install -r requirements.txt`
 
 3. Configure environment variables
-   cp .env.example .env
+   `cp .env.example .env`
 
 4. Activate virtual environment
-   source venv/bin/activate
+   `source venv/bin/activate`
 
 5. Set up environment variables
 
@@ -47,20 +47,28 @@ Create a .env file to store the credentials and API keys:
 # .env file
 
 WORDPRESS_URL=http://your-wordpress-url
+
 WORDPRESS_USERNAME=your-wordpress-username
+
 WORDPRESS_PASSWORD=your-wordpress-password
+
 GOOGLE_SHEET_ID=your-google-sheet-id
+
 GOOGLE_API_CREDENTIALS=path-to-google-api-credentials.json
+
 OPENAI_API_KEY=your-openai-api-key
 
-Usage
+GOOGLE_SHEET_NAME=your-google-sheet-name
+
+## Usage
 
 1. Run the script
-   python rrepair.py
+   ` python rrepair.py`
 
 The script will:
-• Scrape recipe URLs from the Google Sheet
-• Fetch data from each URL
-• Generate new content using the OpenAI API
-• Update the corresponding WordPress articles
-• Update the status in the Google Sheet
+
+- Scrape recipe URLs from the Google Sheet
+- Fetch data from each URL
+- Generate new content using the OpenAI API
+- Update the corresponding WordPress articles
+- Update the status in the Google Sheet
