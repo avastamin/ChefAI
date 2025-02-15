@@ -1,7 +1,13 @@
-import sys
 import os
-import gspread
+import sys
+from concurrent.futures import ThreadPoolExecutor
 from google.oauth2.service_account import Credentials
+
+import content
+import gspread
+import requests
+from bs4 import BeautifulSoup
+from requests.auth import HTTPBasicAuth
 
 # WordPress API Credentials
 WORDPRESS_URL = os.getenv("WORDPRESS_URL")
@@ -15,17 +21,6 @@ STATUS_COLUMN=2
 # Fügen Sie den Pfad zu Ihrem benutzerdefinierten Modul-Verzeichnis hinzu
 sys.path.insert(0, "/www/htdocs/w01a6aec/python-module")
 
-
-
-from concurrent.futures import ThreadPoolExecutor
-import content
-
-
-# #Input from user
-import requests
-from requests.auth import HTTPBasicAuth
-from bs4 import BeautifulSoup
-
 # Set up Google Sheets credentials
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
@@ -38,17 +33,17 @@ creds = Credentials.from_service_account_file(
 gc = gspread.authorize(creds)
 
 # Open the spreadsheet and get the worksheet
-sheet = gc.open('local test').sheet1  # Replace with your sheet name
+sheet = gc.open(os.getenv('GOOGLE_SHEET_NAME', 'local test')).sheet1  # Get sheet name from environment variable
 
 def update_article(url, new_content):
     """Update the article on WordPress with new content."""
     
-    LOCAL_WORDPRESS_URL = "http://demo.local"
-    WORDPRESS_USERNAME = "admin"
-    WORDPRESS_PASSWORD = "ojCo KAnm zoWo bGop fIty LX4Z"
+    # LOCAL_WORDPRESS_URL = "http://demo.local"
+    # WORDPRESS_USERNAME = "admin"
+    # WORDPRESS_PASSWORD = "ojCo KAnm zoWo bGop fIty LX4Z"
 
     # Find correct post ID
-    response = requests.get(f"{LOCAL_WORDPRESS_URL}/wp-json/wp/v2/posts")
+    response = requests.get(f"{WORDPRESS_URL}/wp-json/wp/v2/posts")
     posts = response.json()
     
     post_id = None
@@ -63,7 +58,7 @@ def update_article(url, new_content):
 
     # Update post content
     response = requests.post(
-        f"{LOCAL_WORDPRESS_URL}/wp-json/wp/v2/posts/{post_id}",
+        f"{WORDPRESS_URL}/wp-json/wp/v2/posts/{post_id}",
         auth=(WORDPRESS_USERNAME, WORDPRESS_PASSWORD),
         json={"content": new_content}
     )
