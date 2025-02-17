@@ -46,19 +46,19 @@ Create a .env file to store the credentials and API keys:
 
 # .env file
 
-WORDPRESS_URL=http://your-wordpress-url
+OPENAI_API_KEY=your_openai_api_key_here
 
-WORDPRESS_USERNAME=your-wordpress-username
+WP_BASE_URL=your_wordpress_url_here
 
-WORDPRESS_PASSWORD=your-wordpress-password
+WP_USERNAME=your_wordpress_username
 
-GOOGLE_SHEET_ID=your-google-sheet-id
+WP_PASSWORD=your_wordpress_password
 
-GOOGLE_API_CREDENTIALS=path-to-google-api-credentials.json
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
-OPENAI_API_KEY=your-openai-api-key
+GOOGLE_SHEETS_CREDENTIALS_FILE=your_google_sheet_url_here
 
-GOOGLE_SHEET_NAME=your-google-sheet-name
+GOOGLE_SHEET_KEY=your_google_sheet_name_here
 
 ## Usage
 
