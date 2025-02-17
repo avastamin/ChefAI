@@ -15,7 +15,7 @@ WORDPRESS_USERNAME = os.getenv("WP_USERNAME")
 WORDPRESS_PASSWORD = os.getenv("WP_PASSWORD")
 
 # Path to the credentials file
-GOOGLE_SHEETS_CREDENTIALS_FILE = 'credentials.json'
+GOOGLE_SHEETS_CREDENTIALS_FILE = os.getenv('GOOGLE_SHEETS_CREDENTIALS_FILE', 'cred.json')
 STATUS_COLUMN=2
 
 # Fügen Sie den Pfad zu Ihrem benutzerdefinierten Modul-Verzeichnis hinzu
@@ -27,7 +27,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/drive'
 ]
 creds = Credentials.from_service_account_file(
-    'credentials.json',  # Replace with your credentials file path
+    GOOGLE_SHEETS_CREDENTIALS_FILE,  # Get credentials file path from environment variable
     scopes=SCOPES
 )
 gc = gspread.authorize(creds)
