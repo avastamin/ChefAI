@@ -10,9 +10,9 @@ from bs4 import BeautifulSoup
 from requests.auth import HTTPBasicAuth
 
 # WordPress API Credentials
-WORDPRESS_URL = os.getenv("WORDPRESS_URL")
-WORDPRESS_USERNAME = os.getenv("WORDPRESS_USERNAME")
-WORDPRESS_PASSWORD = os.getenv("WORDPRESS_PASSWORD")
+WORDPRESS_URL = os.getenv("WP_BASE_URL")
+WORDPRESS_USERNAME = os.getenv("WP_USERNAME")
+WORDPRESS_PASSWORD = os.getenv("WP_PASSWORD")
 
 # Path to the credentials file
 GOOGLE_SHEETS_CREDENTIALS_FILE = 'credentials.json'
@@ -33,7 +33,7 @@ creds = Credentials.from_service_account_file(
 gc = gspread.authorize(creds)
 
 # Open the spreadsheet and get the worksheet
-sheet = gc.open(os.getenv('GOOGLE_SHEET_NAME', 'local test')).sheet1  # Get sheet name from environment variable
+sheet = gc.open_by_key(os.getenv('GOOGLE_SHEET_KEY', '1iQTmq-x9rwQUfQyOAHqYiz67ywi-TmMeZusyIxrwG4k')).sheet1  # Get sheet name from environment variable
 
 def update_article(url, new_content):
     """Update the article on WordPress with new content."""
@@ -82,7 +82,6 @@ def update_spreadsheet(url, status):
 
 article_urls = sheet.col_values(1)[1:]  # Get all URLs from first column, skip header
 
-print(article_urls)
 
 for url in article_urls:
     print(f"\n=== Processing Recipe: {url} ===")
@@ -122,8 +121,22 @@ for url in article_urls:
                         time = time_td.text.strip()
                     break
         
-        # Extract images
-        images = [img['src'] for img in soup.find_all('img', src=True)]
+        # Extract images (handling lazy loading)
+        images = []
+        for img in soup.find_all('img', src=True):
+            actual_src = img.get('data-src') or img.get('data-lazy-src') or img.get('src')
+            if actual_src and not actual_src.startswith('data:image/svg+xml'):  # Skip placeholder SVGs
+                images.append(actual_src)
+        
+        # Use placeholder images if no valid images are found
+        if not images:
+            print("⚠️ No valid images found. Using placeholder images.")
+            images = [
+                "https://via.placeholder.com/600x400",
+                "https://via.placeholder.com/600x400",
+                "https://via.placeholder.com/600x400"
+            ]
+        
         image1 = images[0] if len(images) > 0 else None
         image2 = images[1] if len(images) > 1 else None
         image3 = images[2] if len(images) > 2 else None
