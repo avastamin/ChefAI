@@ -1,11 +1,13 @@
 import os
 import sys
-from concurrent.futures import ThreadPoolExecutor
-from google.oauth2.service_account import Credentials
-
 import content
 import gspread
 import requests
+from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urlparse
+from google.oauth2.service_account import Credentials
+
+
 from bs4 import BeautifulSoup
 from requests.auth import HTTPBasicAuth
 
@@ -35,25 +37,50 @@ gc = gspread.authorize(creds)
 # Open the spreadsheet and get the worksheet
 sheet = gc.open_by_key(os.getenv('GOOGLE_SHEET_KEY', '1iQTmq-x9rwQUfQyOAHqYiz67ywi-TmMeZusyIxrwG4k')).sheet1  # Get sheet name from environment variable
 
+def normalize_url(url):
+    """Normalize URL by removing trailing slashes and query parameters."""
+    parsed = urlparse(url)
+    return f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
+
+
 def update_article(url, new_content):
     """Update the article on WordPress with new content."""
-    
-    # LOCAL_WORDPRESS_URL = "http://demo.local"
-    # WORDPRESS_USERNAME = "admin"
-    # WORDPRESS_PASSWORD = "ojCo KAnm zoWo bGop fIty LX4Z"
+    # Normalize the input URL
+    normalized_url = normalize_url(url)
+    print(f"🔍 Searching for post with URL: {normalized_url}")
 
-    # Find correct post ID
-    response = requests.get(f"{WORDPRESS_URL}/wp-json/wp/v2/posts")
-    posts = response.json()
-    
+    # Fetch all posts (handle pagination)
     post_id = None
-    for post in posts:
-        if post["link"].strip("/") == url.strip("/"):
-            post_id = post["id"]
+    page = 1
+    while True:
+        response = requests.get(
+            f"{WORDPRESS_URL}/wp-json/wp/v2/posts",
+            params={"page": page, "per_page": 100}  # Adjust per_page as needed
+        )
+        if response.status_code != 200:
+            print(f"❌ Failed to fetch posts: {response.text}")
+            return False
+
+        posts = response.json()
+        if not posts:
+            print("ℹ️ No more posts found.")
+            break
+        # Search for the post with the matching URL
+        for post in posts:
+            post_url = normalize_url(post["link"])
+            print(f"Checking post {post['id']}: {post_url}")
+            if post_url == normalized_url:
+                post_id = post["id"]
+                print(f"✅ Found matching post ID: {post_id}")
+                break
+
+        if post_id:
             break
 
+        page += 1
+
     if not post_id:
-        print(f"❌ No matching post found for URL: {url}")
+        print(f"❌ No matching post found for URL: {normalized_url}")
         return False
 
     # Update post content
@@ -64,12 +91,11 @@ def update_article(url, new_content):
     )
     
     if response.status_code == 200:
-        print(f"✅ Article {url} updated successfully!")
+        print(f"✅ Article {normalized_url} updated successfully!")
         return True
     else:
-        print(f"❌ Failed to update article {url}: {response.text}")
+        print(f"❌ Failed to update article {normalized_url}: {response.text}")
         return False
-    
 
 def update_spreadsheet(url, status):
     """Update Google Sheets status column."""
