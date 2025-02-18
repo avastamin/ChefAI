@@ -38,6 +38,9 @@ gc = gspread.authorize(creds)
 # Open the spreadsheet and get the worksheet
 sheet = gc.open_by_key(os.getenv('GOOGLE_SHEET_KEY', '1iQTmq-x9rwQUfQyOAHqYiz67ywi-TmMeZusyIxrwG4k')).sheet1  # Get sheet name from environment variable
 
+# In-memory cache to store URL-to-ID mappings
+POST_ID_CACHE = {}
+
 def normalize_url(url):
     """Normalize URL by removing trailing slashes and query parameters."""
     parsed = urlparse(url)
@@ -49,7 +52,15 @@ def extract_post_id_from_url(url):
     return int(match.group(1)) if match else None
 
 def get_post_id_by_url(url):
-    """Fetch post ID by first trying to extract it from the URL, then falling back to normal search."""
+    """Fetch post ID by first trying to extract it, then falling back to full search (cached)."""
+    normalized_url = normalize_url(url)
+
+    # Check if the post ID is already cached
+    if normalized_url in POST_ID_CACHE:
+        print(f"🔍 Using cached post ID: {POST_ID_CACHE[normalized_url]}")
+        return POST_ID_CACHE[normalized_url]
+
+    # Try extracting the post ID from the URL
     post_id = extract_post_id_from_url(url)
 
     if post_id:
@@ -58,19 +69,19 @@ def get_post_id_by_url(url):
 
         if response.status_code == 200:
             print(f"✅ Post ID {post_id} found via direct lookup!")
+            POST_ID_CACHE[normalized_url] = post_id  # Store in cache
             return post_id
         else:
             print(f"⚠️ Direct lookup failed for ID {post_id}, falling back to full search.")
 
-    # Fallback: Search by normalized URL
-    normalized_url = normalize_url(url)
-    print(f"🔍 Searching for post with URL: {normalized_url}")
+    # Fallback: Full search, but only if it's the first time
+    print(f"🔍 Performing full search for URL: {normalized_url}")
 
     page = 1
     while True:
         response = requests.get(
             f"{WORDPRESS_URL}/wp-json/wp/v2/posts",
-            params={"page": page, "per_page": 100}  # Adjust as needed
+            params={"page": page, "per_page": 100}
         )
 
         if response.status_code != 200:
@@ -88,9 +99,13 @@ def get_post_id_by_url(url):
             print(f"🔎 Checking post {post['id']}: {post_url}")
             if post_url == normalized_url:
                 print(f"✅ Found matching post ID: {post['id']}")
+                POST_ID_CACHE[normalized_url] = post["id"]  # Store in cache
                 return post["id"]
 
         page += 1  # Continue pagination if no match found
+
+    return None  # No match found
+
 def update_article(url, new_content):
     """Update an article on WordPress with new content."""
     post_id = get_post_id_by_url(url)
