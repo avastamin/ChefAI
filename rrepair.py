@@ -3,6 +3,7 @@ import sys
 import content
 import gspread
 import requests
+import re
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse
 from google.oauth2.service_account import Credentials
@@ -42,45 +43,60 @@ def normalize_url(url):
     parsed = urlparse(url)
     return f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
 
+def extract_post_id_from_url(url):
+    """Extract the post ID from the end of the URL if it exists."""
+    match = re.search(r'-(\d+)/?$', url)
+    return int(match.group(1)) if match else None
 
-def update_article(url, new_content):
-    """Update the article on WordPress with new content."""
-    # Normalize the input URL
+def get_post_id_by_url(url):
+    """Fetch post ID by first trying to extract it from the URL, then falling back to normal search."""
+    post_id = extract_post_id_from_url(url)
+
+    if post_id:
+        print(f"🔍 Extracted post ID: {post_id}")
+        response = requests.get(f"{WORDPRESS_URL}/wp-json/wp/v2/posts/{post_id}")
+
+        if response.status_code == 200:
+            print(f"✅ Post ID {post_id} found via direct lookup!")
+            return post_id
+        else:
+            print(f"⚠️ Direct lookup failed for ID {post_id}, falling back to full search.")
+
+    # Fallback: Search by normalized URL
     normalized_url = normalize_url(url)
     print(f"🔍 Searching for post with URL: {normalized_url}")
 
-    # Fetch all posts (handle pagination)
-    post_id = None
     page = 1
     while True:
         response = requests.get(
             f"{WORDPRESS_URL}/wp-json/wp/v2/posts",
-            params={"page": page, "per_page": 100}  # Adjust per_page as needed
+            params={"page": page, "per_page": 100}  # Adjust as needed
         )
+
         if response.status_code != 200:
             print(f"❌ Failed to fetch posts: {response.text}")
-            return False
+            return None
 
         posts = response.json()
         if not posts:
             print("ℹ️ No more posts found.")
-            break
-        # Search for the post with the matching URL
+            return None
+
+        # Check for matching post URL
         for post in posts:
             post_url = normalize_url(post["link"])
-            print(f"Checking post {post['id']}: {post_url}")
+            print(f"🔎 Checking post {post['id']}: {post_url}")
             if post_url == normalized_url:
-                post_id = post["id"]
-                print(f"✅ Found matching post ID: {post_id}")
-                break
+                print(f"✅ Found matching post ID: {post['id']}")
+                return post["id"]
 
-        if post_id:
-            break
-
-        page += 1
+        page += 1  # Continue pagination if no match found
+def update_article(url, new_content):
+    """Update an article on WordPress with new content."""
+    post_id = get_post_id_by_url(url)
 
     if not post_id:
-        print(f"❌ No matching post found for URL: {normalized_url}")
+        print(f"❌ No matching post found for URL: {url}")
         return False
 
     # Update post content
@@ -89,13 +105,14 @@ def update_article(url, new_content):
         auth=(WORDPRESS_USERNAME, WORDPRESS_PASSWORD),
         json={"content": new_content}
     )
-    
+
     if response.status_code == 200:
-        print(f"✅ Article {normalized_url} updated successfully!")
+        print(f"✅ Article updated successfully: {url}")
         return True
     else:
-        print(f"❌ Failed to update article {normalized_url}: {response.text}")
+        print(f"❌ Failed to update article: {response.text}")
         return False
+    
 
 def update_spreadsheet(url, status):
     """Update Google Sheets status column."""
